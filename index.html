@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chicago Housing Vacancy</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <!-- GeoJSON data -->
+    <script src="data.js"></script>
+
+    <!-- Legend styling -->
+    <style>
+        .legend {
+            padding: 6px 8px;
+            line-height: 18px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div id="map" style="height: 500px"></div>
+
+    <script type="text/javascript">
+
+        // --------------------------------------------------
+        // CREATE MAP
+        // --------------------------------------------------
+
+        var map = L.map('map', {
+    	center: [41.84, -87.68],
+    	zoom: 10
+        });
+
+
+        // --------------------------------------------------
+        // ADD BASEMAP
+        // --------------------------------------------------
+
+        L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+            {
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+                maxZoom: 11,
+                minZoom: 5
+            }
+        ).addTo(map);
+
+
+        // --------------------------------------------------
+        // CHOROPLETH COLORS
+        // --------------------------------------------------
+
+        function getColor(value) {
+    return value > 22.404 ? '#08519c' :
+           value > 17.077 ? '#3182bd' :
+           value > 11.513 ? '#6baed6' :
+           value > 7.175  ? '#bdd7e7' :
+                            '#eff3ff';
+        }
+
+
+        // --------------------------------------------------
+        // STYLE GEOJSON FEATURES
+        // --------------------------------------------------
+
+	function style(feature) {
+   	return {
+        fillColor: getColor(feature.properties.Vacancy),
+        weight: 2,
+        opacity: 1,
+        color: 'gray',
+        dashArray: '3',
+        fillOpacity: 0.9
+    };
+        }
+
+
+        // --------------------------------------------------
+        // MOUSEOVER HIGHLIGHT
+        // --------------------------------------------------
+
+        function highlightFeature(e) {
+
+            var feature = e.target;
+
+            feature.setStyle({
+    weight: 5,
+    color: 'white',
+    fillOpacity: 0.7
+});
+        
+
+            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                feature.bringToFront();
+            }
+        }
+
+
+        // --------------------------------------------------
+        // RESET STYLE AFTER MOUSE LEAVES
+        // --------------------------------------------------
+
+        var geojson;
+
+        function resetHighlight(e) {
+            geojson.resetStyle(e.target);
+        }
+
+
+        // --------------------------------------------------
+        // ADD MOUSE EVENTS TO EACH FEATURE
+        // --------------------------------------------------
+
+        function onEachFeature(feature, layer) {
+            layer.on({
+                mouseover: highlightFeature,
+                mouseout: resetHighlight
+            });
+        }
+
+
+        // --------------------------------------------------
+        // ADD GEOJSON + POPUPS
+        // --------------------------------------------------
+
+       geojson = L.geoJson(data, {
+    style: style,
+    onEachFeature: onEachFeature
+}).bindTooltip(function (layer) {
+
+    return '<b>' + layer.feature.properties.community + '</b><br>' +
+           'Vacant housing units: ' +
+           layer.feature.properties.Vacancy.toFixed(1) + '%';
+
+}).addTo(map);
+
+
+        // --------------------------------------------------
+        // CREATE LEGEND
+        // --------------------------------------------------
+
+        var legend = L.control({
+    position: 'bottomright'
+});
+
+legend.onAdd = function (map) {
+
+    var div = L.DomUtil.create('div', 'legend'),
+        grades = [4.428, 7.175, 11.513, 17.077, 22.404];
+
+    div.innerHTML =
+        '<b>Vacant Housing Units (%)</b><br>';
+
+    for (var i = 0; i < grades.length; i++) {
+
+        div.innerHTML +=
+            '<i style="background:' +
+            getColor(grades[i] + 0.001) +
+            '"></i>' +
+            grades[i].toFixed(1) +
+            (grades[i + 1]
+                ? '&ndash;' + grades[i + 1].toFixed(1) + '%<br>'
+                : '%+');
+    }
+
+    return div;
+};
+
+legend.addTo(map);
+
+    </script>
+
+</body>
+
+</html>
